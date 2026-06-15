@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+
+{% block title %}Voice Sentiment Analysis - AI Academic Demo{% endblock %}
+
+{% block content %}
+<div>
+    <h1 style="font-size: 2.1rem; margin-bottom: 0.25rem;">Voice Sentiment Analysis</h1>
+    <p>Analyze emotional sentiment (Positive, Negative, Neutral) of raw voice audio using Whisper and DistilBERT.</p>
+</div>
+
+<div class="module-layout">
+    <!-- Column 1: Model Details & Inputs -->
+    <div class="panel">
+        <h3 class="panel-title">Model Specifications</h3>
+        
+        <div class="spec-box">
+            <div class="spec-item">
+                <div class="spec-label">Speech-to-Text Model</div>
+                <div class="spec-val">Whisper-Tiny (Transformer)</div>
+            </div>
+            <div class="spec-item">
+                <div class="spec-label">Sentiment Model</div>
+                <div class="spec-val">DistilBERT (Transformer)</div>
+            </div>
+            <div class="spec-item">
+                <div class="spec-label">Research Dataset</div>
+                <div class="spec-val">RAVDESS Audio Speech Dataset</div>
+            </div>
+            <div class="spec-item">
+                <div class="spec-label">Execution Pipeline</div>
+                <div class="spec-val">Voice Input → Whisper → Text → DistilBERT</div>
+            </div>
+        </div>
+
+        <h3 class="panel-title" style="margin-top: 2rem;">Audio Inputs</h3>
+        
+        <!-- Actions Group -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <button id="btn-upload-trigger" class="btn-green w-100"><i class="bi bi-file-earmark-music"></i> Upload Audio</button>
+            <button id="btn-mic-trigger" class="btn-outline w-100"><i class="bi bi-mic"></i> Live Mic</button>
+        </div>
+
+        <input type="file" id="audio-input" style="display: none;" accept="audio/*" hidden>
+
+        <!-- Live Mic Recording Container -->
+        <div id="mic-audio-container" class="hidden text-center" style="padding: 2rem 0; border: 1px solid var(--border-color); border-radius: 10px; margin-top: 1rem;">
+            <div id="record-state" class="mb-2" style="font-size: 1.1rem; font-weight: 600;">Microphone Ready</div>
+            <div class="recording-indicator hidden" id="recording-indicator" style="justify-content: center; margin-bottom: 1.5rem;">
+                <div class="pulse-circle"></div>
+                Recording Audio Stream...
+            </div>
+            
+            <div style="display: flex; justify-content: center; gap: 1rem;">
+                <button id="btn-start-record" class="btn-green"><i class="bi bi-record-circle"></i> Start Recording</button>
+                <button id="btn-stop-record" class="btn-outline hidden"><i class="bi bi-stop-circle"></i> Stop Recording</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column 2: Results & Chart -->
+    <div class="panel">
+        <h3 class="panel-title">Analysis Outputs</h3>
+
+        <!-- Loading -->
+        <div id="loading" class="text-center hidden" style="padding: 4rem 0;">
+            <div style="font-size: 1.5rem; color: var(--primary-green); margin-bottom: 0.5rem;">
+                <i class="bi bi-arrow-repeat" style="display: inline-block; animation: spin 1.5s linear infinite;"></i>
+            </div>
+            <div style="font-weight: 600;">Transcribing Speech & Scoring Sentiment...</div>
+        </div>
+
+        <!-- Placeholder -->
+        <div id="placeholder-info" class="text-center" style="padding: 5rem 0; border: 1px dashed var(--border-color); border-radius: 8px;">
+            <i class="bi bi-mic" style="font-size: 3rem; color: var(--border-color); display: block; margin-bottom: 1rem;"></i>
+            <span style="font-weight: 500; color: var(--text-muted);">Upload or record a speech sample to see model predictions</span>
+        </div>
+
+        <!-- Results panel -->
+        <div id="result-container" class="hidden">
+            <!-- Sentiment Card -->
+            <div class="result-card" id="sentiment-card" style="display: block;">
+                <div class="result-header">Speech Emotion Recognition Output</div>
+                <div class="result-value" id="res-sentiment">Neutral</div>
+                <div class="result-conf">Confidence Score: <span id="res-conf">87.12%</span></div>
+            </div>
+
+            <!-- Transcribed text -->
+            <div class="mt-3">
+                <div class="spec-label">Whisper Speech Transcription</div>
+                <div class="transcription-box" id="res-transcription">
+                    "This is the transcribed text of the audio sample."
+                </div>
+            </div>
+
+            <!-- Playback -->
+            <div class="audio-player-wrapper">
+                <div class="spec-label">Audio Playback</div>
+                <audio id="audio-playback" controls class="w-100" style="margin-top: 0.25rem;"></audio>
+            </div>
+
+            <!-- Chart -->
+            <div class="sentiment-chart">
+                <div class="spec-label" style="margin-bottom: 0.25rem;">Probability Distribution</div>
+                
+                <!-- Neutral -->
+                <div class="chart-row">
+                    <div class="chart-label">Neutral</div>
+                    <div class="chart-bar-container">
+                        <div class="chart-bar neutral" id="bar-neutral"></div>
+                    </div>
+                    <div class="chart-val" id="val-neutral">0.0%</div>
+                </div>
+
+                <!-- Happy -->
+                <div class="chart-row">
+                    <div class="chart-label">Happy</div>
+                    <div class="chart-bar-container">
+                        <div class="chart-bar happy" id="bar-happy"></div>
+                    </div>
+                    <div class="chart-val" id="val-happy">0.0%</div>
+                </div>
+
+                <!-- Sad -->
+                <div class="chart-row">
+                    <div class="chart-label">Sad</div>
+                    <div class="chart-bar-container">
+                        <div class="chart-bar sad" id="bar-sad"></div>
+                    </div>
+                    <div class="chart-val" id="val-sad">0.0%</div>
+                </div>
+
+                <!-- Angry -->
+                <div class="chart-row">
+                    <div class="chart-label">Angry</div>
+                    <div class="chart-bar-container">
+                        <div class="chart-bar angry" id="bar-angry"></div>
+                    </div>
+                    <div class="chart-val" id="val-angry">0.0%</div>
+                </div>
+            </div>
+
+            <!-- Pipeline details logs -->
+            <div class="preprocessing-steps">
+                <details open>
+                    <summary>View Pipeline Preprocessing Logs</summary>
+                    <ul class="steps-list" id="preprocessing-logs">
+                        <!-- Populated dynamically -->
+                    </ul>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Actions triggers
+    const btnUploadTrigger = document.getElementById('btn-upload-trigger');
+    const btnMicTrigger = document.getElementById('btn-mic-trigger');
+    const micContainer = document.getElementById('mic-audio-container');
+    const audioInput = document.getElementById('audio-input');
+
+    btnUploadTrigger.addEventListener('click', () => {
+        audioInput.click();
+    });
+
+    btnMicTrigger.addEventListener('click', () => {
+        if (micContainer.classList.contains('hidden')) {
+            micContainer.classList.remove('hidden');
+            btnMicTrigger.className = 'btn-green w-100';
+            btnUploadTrigger.className = 'btn-outline w-100';
+        } else {
+            closeMicPanel();
+        }
+    });
+
+    function closeMicPanel() {
+        micContainer.classList.add('hidden');
+        btnMicTrigger.className = 'btn-outline w-100';
+        btnUploadTrigger.className = 'btn-green w-100';
+        resetRecorder();
+    }
+
+    // File Upload handling
+    audioInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const formData = new FormData();
+            formData.append('audio', file);
+            sendSentimentAnalysisRequest(formData);
+        }
+    });
+
+    // Recording logic (PCM WAV 16kHz Mono Recorder)
+    let audioContext;
+    let scriptProcessor;
+    let stream;
+    let audioBuffer = [];
+    
+    const btnStartRecord = document.getElementById('btn-start-record');
+    const btnStopRecord = document.getElementById('btn-stop-record');
+    const recordState = document.getElementById('record-state');
+    const recordingIndicator = document.getElementById('recording-indicator');
+
+    btnStartRecord.addEventListener('click', async () => {
+        audioBuffer = [];
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // Initialize AudioContext at 16kHz mono
+            audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            const source = audioContext.createMediaStreamSource(stream);
+            
+            // ScriptProcessorNode for buffer sampling (4096 samples, 1 input, 1 output)
+            scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+            
+            scriptProcessor.onaudioprocess = (e) => {
+                const inputData = e.inputBuffer.getChannelData(0);
+                audioBuffer.push(new Float32Array(inputData));
+            };
+            
+            source.connect(scriptProcessor);
+            scriptProcessor.connect(audioContext.destination);
+
+            btnStartRecord.classList.add('hidden');
+            btnStopRecord.classList.remove('hidden');
+            recordState.textContent = 'Recording Speech...';
+            recordingIndicator.classList.remove('hidden');
+
+        } catch (err) {
+            alert('Microphone access denied: ' + err.message);
+        }
+    });
+
+    btnStopRecord.addEventListener('click', () => {
+        if (scriptProcessor) {
+            scriptProcessor.disconnect();
+            scriptProcessor = null;
+        }
+        if (audioContext) {
+            audioContext.close();
+            audioContext = null;
+        }
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+
+        btnStopRecord.classList.add('hidden');
+        btnStartRecord.classList.remove('hidden');
+        recordState.textContent = 'Microphone Ready';
+        recordingIndicator.classList.add('hidden');
+
+        // Compile WAV
+        if (audioBuffer.length > 0) {
+            let totalLength = audioBuffer.reduce((acc, val) => acc + val.length, 0);
+            let mergedBuffer = new Float32Array(totalLength);
+            let offset = 0;
+            for (let b of audioBuffer) {
+                mergedBuffer.set(b, offset);
+                offset += b.length;
+            }
+            
+            const wavBlob = bufferToWav(mergedBuffer, 16000);
+            const formData = new FormData();
+            formData.append('audio', wavBlob, 'mic_recording.wav');
+            sendSentimentAnalysisRequest(formData);
+            closeMicPanel();
+        }
+    });
+
+    function resetRecorder() {
+        if (scriptProcessor) {
+            scriptProcessor.disconnect();
+            scriptProcessor = null;
+        }
+        if (audioContext) {
+            audioContext.close();
+            audioContext = null;
+        }
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        audioBuffer = [];
+        btnStopRecord.classList.add('hidden');
+        btnStartRecord.classList.remove('hidden');
+        recordState.textContent = 'Microphone Ready';
+        recordingIndicator.classList.add('hidden');
+    }
+
+    // Convert PCM Float32 buffer to WAV Blob
+    function bufferToWav(buffer, sampleRate) {
+        let length = buffer.length * 2;
+        let view = new DataView(new ArrayBuffer(44 + length));
+        
+        // RIFF chunk
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, 36 + length, true);
+        writeString(view, 8, 'WAVE');
+        
+        // fmt chunk
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true); // chunk size
+        view.setUint16(20, 1, true); // compression format (PCM)
+        view.setUint16(22, 1, true); // channel count (mono)
+        view.setUint32(24, sampleRate, true); // sample rate
+        view.setUint32(28, sampleRate * 2, true); // byte rate
+        view.setUint16(32, 2, true); // block align
+        view.setUint16(34, 16, true); // bits per sample
+        
+        // data chunk
+        writeString(view, 36, 'data');
+        view.setUint32(40, length, true);
+        
+        // Write PCM samples
+        let offset = 44;
+        for (let i = 0; i < buffer.length; i++, offset += 2) {
+            let s = Math.max(-1, Math.min(1, buffer[i]));
+            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+        
+        return new Blob([view], { type: 'audio/wav' });
+    }
+
+    function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    }
+
+    async function sendSentimentAnalysisRequest(formData) {
+        document.getElementById('placeholder-info').classList.add('hidden');
+        document.getElementById('result-container').classList.add('hidden');
+        document.getElementById('loading').classList.remove('hidden');
+
+        try {
+            const response = await fetch('/api/analyze-sentiment', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+                document.getElementById('placeholder-info').classList.remove('hidden');
+                document.getElementById('loading').classList.add('hidden');
+                return;
+            }
+
+            // Populate text transcription
+            document.getElementById('res-transcription').textContent = `"${data.transcription}"`;
+
+            // Display Sentiment labels
+            document.getElementById('res-sentiment').textContent = data.sentiment;
+            document.getElementById('res-conf').textContent = data.confidence;
+            
+            // Set Color of Sentiment Card based on class
+            const card = document.getElementById('sentiment-card');
+            const emotionLower = data.sentiment.toLowerCase();
+            if (emotionLower === 'happy') {
+                card.style.borderLeftColor = 'var(--primary-green)';
+                card.style.backgroundColor = 'var(--light-green)';
+            } else if (emotionLower === 'sad') {
+                card.style.borderLeftColor = '#3b82f6'; // Blue
+                card.style.backgroundColor = '#eff6ff';
+            } else if (emotionLower === 'angry') {
+                card.style.borderLeftColor = '#ef4444'; // Red
+                card.style.backgroundColor = '#fef2f2';
+            } else { // Neutral
+                card.style.borderLeftColor = 'var(--text-muted)';
+                card.style.backgroundColor = '#fafafa';
+            }
+
+            // Set audio player playback source
+            document.getElementById('audio-playback').src = data.original_audio_url;
+
+            // Animate Charts
+            setTimeout(() => {
+                document.getElementById('bar-neutral').style.width = data.visualization.neutral + '%';
+                document.getElementById('val-neutral').textContent = data.visualization.neutral.toFixed(1) + '%';
+                
+                document.getElementById('bar-happy').style.width = data.visualization.happy + '%';
+                document.getElementById('val-happy').textContent = data.visualization.happy.toFixed(1) + '%';
+                
+                document.getElementById('bar-sad').style.width = data.visualization.sad + '%';
+                document.getElementById('val-sad').textContent = data.visualization.sad.toFixed(1) + '%';
+                
+                document.getElementById('bar-angry').style.width = data.visualization.angry + '%';
+                document.getElementById('val-angry').textContent = data.visualization.angry.toFixed(1) + '%';
+            }, 100);
+
+            // Populate Pipeline steps
+            const logsContainer = document.getElementById('preprocessing-logs');
+            logsContainer.innerHTML = '';
+            data.preprocessing.forEach(step => {
+                const li = document.createElement('li');
+                li.textContent = step;
+                logsContainer.appendChild(li);
+            });
+
+            // Reveal
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('result-container').classList.remove('hidden');
+
+        } catch (err) {
+            alert('Error connecting to backend model service: ' + err.message);
+            document.getElementById('placeholder-info').classList.remove('hidden');
+            document.getElementById('loading').classList.add('hidden');
+        }
+    }
+</script>
+{% endblock %}

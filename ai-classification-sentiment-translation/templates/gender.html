@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block title %}Gender Classification - AI Academic Demo{% endblock %}
+
+{% block content %}
+<div>
+    <h1 style="font-size: 2.1rem; margin-bottom: 0.25rem;">Gender Classification</h1>
+    <p>Classify gender as Male or Female from an uploaded image or live webcam capture.</p>
+</div>
+
+<div class="module-layout">
+    <!-- Column 1: Model details & Controls -->
+    <div class="panel">
+        <h3 class="panel-title">Model Specifications</h3>
+        
+        <div class="spec-box">
+            <div class="spec-item">
+                <div class="spec-label">Model Architecture</div>
+                <div class="spec-val">Convolutional Neural Network (CNN)</div>
+            </div>
+            <div class="spec-item">
+                <div class="spec-label">Training Datasets</div>
+                <div class="spec-val">CelebA & UTKFace Datasets</div>
+            </div>
+            <div class="spec-item">
+                <div class="spec-label">Input Shape</div>
+                <div class="spec-val">64x64x3 (RGB)</div>
+            </div>
+            <div class="spec-item">
+                <div class="spec-label">Backend Execution</div>
+                <div class="spec-val">Keras 3 on PyTorch</div>
+            </div>
+        </div>
+
+        <h3 class="panel-title" style="margin-top: 2rem;">Inference Inputs</h3>
+        
+        <!-- Actions Group -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <button id="btn-upload-trigger" class="btn-green w-100"><i class="bi bi-upload"></i> Upload Image</button>
+            <button id="btn-camera-trigger" class="btn-outline w-100"><i class="bi bi-camera"></i> Open Camera</button>
+        </div>
+
+        <input type="file" id="file-input" style="display: none;" accept="image/*" hidden>
+
+        <!-- Camera Area -->
+        <div id="camera-container" class="hidden" style="margin-top: 1rem;">
+            <video id="webcam" autoplay playsinline class="camera-preview"></video>
+            <div style="display: flex; gap: 1rem;">
+                <button id="btn-capture" class="btn-green w-100"><i class="bi bi-snapchat"></i> Capture Photo</button>
+                <button id="btn-stop-camera" class="btn-outline"><i class="bi bi-camera-video-off"></i> Close Camera</button>
+            </div>
+        </div>
+        
+        <canvas id="capture-canvas" class="hidden" width="640" height="480"></canvas>
+    </div>
+
+    <!-- Column 2: Results & Preprocessing logs -->
+    <div class="panel">
+        <h3 class="panel-title">Prediction & Preprocessing</h3>
+        
+        <!-- Loading state -->
+        <div id="loading" class="text-center hidden" style="padding: 3rem 0;">
+            <div style="font-size: 1.5rem; color: var(--primary-green); margin-bottom: 0.5rem;">
+                <i class="bi bi-arrow-repeat" style="display: inline-block; animation: spin 1.5s linear infinite;"></i>
+            </div>
+            <div style="font-weight: 600;">Running CNN Inference...</div>
+            <style>
+                @keyframes spin { 100% { transform: rotate(360deg); } }
+            </style>
+        </div>
+
+        <!-- Info placeholder -->
+        <div id="placeholder-info" class="text-center" style="padding: 5rem 0; border: 1px dashed var(--border-color); border-radius: 8px;">
+            <i class="bi bi-image" style="font-size: 3rem; color: var(--border-color); display: block; margin-bottom: 1rem;"></i>
+            <span style="font-weight: 500; color: var(--text-muted);">Provide an input image to view prediction results</span>
+        </div>
+
+        <!-- Output Result Panel -->
+        <div id="result-container" style="display: none;">
+            <div class="result-card" id="result-card-box" style="display: block;">
+                <div class="result-header">Inference Classification Output</div>
+                <div class="result-value" id="res-gender">Female</div>
+                <div class="result-conf">Confidence Score: <span id="res-conf">98.54%</span></div>
+            </div>
+
+            <div class="image-preview-container">
+                <div class="preview-box">
+                    <img id="preview-orig" src="" alt="Original Image">
+                    <div class="preview-label">Original Input</div>
+                </div>
+                <div class="preview-box" id="preview-crop-box">
+                    <img id="preview-crop" src="" alt="Face Crop">
+                    <div class="preview-label">OpenCV Face Crop</div>
+                </div>
+            </div>
+
+            <!-- Server Preprocessing Steps -->
+            <div class="preprocessing-steps">
+                <details open>
+                    <summary>View Pipeline Preprocessing Logs</summary>
+                    <ul class="steps-list" id="preprocessing-logs">
+                        <!-- Populated by JavaScript -->
+                    </ul>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Actions triggers
+    const btnUploadTrigger = document.getElementById('btn-upload-trigger');
+    const btnCameraTrigger = document.getElementById('btn-camera-trigger');
+    const cameraContainer = document.getElementById('camera-container');
+    const webcam = document.getElementById('webcam');
+    const canvas = document.getElementById('capture-canvas');
+    const fileInput = document.getElementById('file-input');
+    const btnCapture = document.getElementById('btn-capture');
+    const btnStopCamera = document.getElementById('btn-stop-camera');
+    
+    let stream = null;
+
+    btnUploadTrigger.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    btnCameraTrigger.addEventListener('click', async () => {
+        if (cameraContainer.classList.contains('hidden')) {
+            cameraContainer.classList.remove('hidden');
+            btnCameraTrigger.className = 'btn-green w-100';
+            btnUploadTrigger.className = 'btn-outline w-100';
+            await startCamera();
+        } else {
+            closeCameraPanel();
+        }
+    });
+
+    function closeCameraPanel() {
+        cameraContainer.classList.add('hidden');
+        btnCameraTrigger.className = 'btn-outline w-100';
+        btnUploadTrigger.className = 'btn-green w-100';
+        stopCamera();
+    }
+
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            webcam.srcObject = stream;
+        } catch (err) {
+            alert('Could not access your camera: ' + err.message);
+        }
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+    }
+
+    btnStopCamera.addEventListener('click', closeCameraPanel);
+
+    // Handling Image Upload & Inference
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+            sendPredictionRequest(formData);
+        }
+    });
+
+    // Handling Camera Capture & Inference
+    btnCapture.addEventListener('click', () => {
+        if (stream) {
+            const ctx = canvas.getContext('2d');
+            
+            // Safe fallback for video dimensions (handles 0x0 on startup metadata lag)
+            let w = webcam.videoWidth;
+            let h = webcam.videoHeight;
+            if (!w || !h) {
+                w = webcam.clientWidth || 640;
+                h = webcam.clientHeight || 480;
+            }
+            canvas.width = w;
+            canvas.height = h;
+            
+            ctx.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+            
+            const base64Image = canvas.toDataURL('image/jpeg', 0.85);
+            const formData = new FormData();
+            formData.append('image_base64', base64Image);
+            
+            sendPredictionRequest(formData);
+            closeCameraPanel();
+        }
+    });
+
+    async function sendPredictionRequest(formData) {
+        // UI States
+        document.getElementById('placeholder-info').style.display = 'none';
+        document.getElementById('result-container').style.display = 'none';
+        document.getElementById('loading').classList.remove('hidden');
+
+        try {
+            const response = await fetch('/api/predict-gender', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            if (data.error) {
+                alert(data.error);
+                document.getElementById('placeholder-info').style.display = 'block';
+                document.getElementById('loading').classList.add('hidden');
+                return;
+            }
+
+            // Populate Results
+            document.getElementById('res-gender').textContent = data.gender;
+            document.getElementById('res-conf').textContent = data.confidence;
+            document.getElementById('preview-orig').src = data.original_image_url;
+            
+            if (data.face_detected && data.cropped_image_url) {
+                document.getElementById('preview-crop-box').style.display = 'block';
+                document.getElementById('preview-crop').src = data.cropped_image_url;
+            } else {
+                document.getElementById('preview-crop-box').style.display = 'none';
+            }
+
+            // Logs
+            const logsContainer = document.getElementById('preprocessing-logs');
+            logsContainer.innerHTML = '';
+            data.preprocessing.forEach(step => {
+                const li = document.createElement('li');
+                li.textContent = step;
+                logsContainer.appendChild(li);
+            });
+
+            // Reveal
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('result-container').style.display = 'block';
+
+        } catch (err) {
+            alert('Error connecting to backend model service: ' + err.message);
+            document.getElementById('placeholder-info').style.display = 'block';
+            document.getElementById('loading').classList.add('hidden');
+        }
+    }
+</script>
+{% endblock %}

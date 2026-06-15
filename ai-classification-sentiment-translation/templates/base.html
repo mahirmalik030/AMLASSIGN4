@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Academic Demo{% endblock %}</title>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <i class="bi bi-cpu"></i> AI <span>Demo</span>
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Home</a></li>
+            <li><a href="/gender" class="nav-link {% if request.path == '/gender' %}active{% endif %}">Gender Classification</a></li>
+            <li><a href="/sentiment" class="nav-link {% if request.path == '/sentiment' %}active{% endif %}">Voice Sentiment</a></li>
+            <li><a href="/translation" class="nav-link {% if request.path == '/translation' %}active{% endif %}">Translation</a></li>
+        </ul>
+    </nav>
+
+    <!-- Content -->
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - AI Academic Demonstration{% endblock %}
+
+{% block content %}
+<div class="text-center" style="margin-bottom: 3rem;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Academic AI Model Integrations</h1>
+    <p style="font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
+        A stateless, high-performance Flask platform demonstrating Convolutional Neural Networks and Transformer-based deep learning models.
+    </p>
+</div>
+
+<div class="module-grid">
+    <!-- Card 1: Gender Classification -->
+    <a href="/gender" class="module-card">
+        <div>
+            <div class="module-icon"><i class="bi bi-person-bounding-box"></i></div>
+            <h3 class="module-title">Gender Classification</h3>
+            <p class="module-desc">
+                Classify a person as Male or Female from an uploaded image or real-time webcam capture.
+            </p>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <span class="module-badge">CNN Model</span>
+            <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary-green); white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0;">Open Module <i class="bi bi-arrow-right"></i></span>
+        </div>
+    </a>
+
+    <!-- Card 2: Voice Sentiment Analysis -->
+    <a href="/sentiment" class="module-card">
+        <div>
+            <div class="module-icon"><i class="bi bi-mic"></i></div>
+            <h3 class="module-title">Voice Sentiment Analysis</h3>
+            <p class="module-desc">
+                Analyze emotional sentiment (Positive, Negative, or Neutral) of voice recordings.
+            </p>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <span class="module-badge">Whisper + DistilBERT</span>
+            <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary-green); white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0;">Open Module <i class="bi bi-arrow-right"></i></span>
+        </div>
+    </a>
+
+    <!-- Card 3: Language Translation -->
+    <a href="/translation" class="module-card">
+        <div>
+            <div class="module-icon"><i class="bi bi-translate"></i></div>
+            <h3 class="module-title">Language Translation</h3>
+            <p class="module-desc">
+                Translate text between English and Urdu bi-directionally with voice or text inputs.
+            </p>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <span class="module-badge">MarianMT Transformer</span>
+            <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary-green); white-space: nowrap; display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0;">Open Module <i class="bi bi-arrow-right"></i></span>
+        </div>
+    </a>
+</div>
+{% endblock %}
